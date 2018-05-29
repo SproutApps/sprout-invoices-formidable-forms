@@ -53,11 +53,11 @@ class SI_Formidable_Controller extends SI_Controller {
 		if ( ! isset( $args['status'] ) ) {
 			$args['status'] = SI_Estimate::STATUS_PENDING;
 		}
-		// Create invoice
+		// Create estimate
 		$args = apply_filters( 'si_estimate_submmissions_args', $args );
 		$estimate_id = SI_Estimate::create_estimate( $args );
 		$estimate = SI_Estimate::get_instance( $estimate_id );
-		do_action( 'estimate_submitted_from_adv_form', $estimate, $args );
+		do_action( 'si_estimate_submitted_from_adv_form', $estimate, $args );
 		if ( isset( $args['line_item_list'] ) && ! empty( $args['line_item_list'] ) ) {
 			$line_items = array();
 			foreach ( $args['line_item_list'] as $item_id ) {
@@ -89,7 +89,7 @@ class SI_Formidable_Controller extends SI_Controller {
 			0,
 		false );
 
-		do_action( 'si_estimate_submitted_from_adv_form', $estimate, $args );
+		do_action( 'si_estimate_submitted_from_adv_form_complete', $estimate, $args );
 		return $estimate;
 	}
 
@@ -104,7 +104,7 @@ class SI_Formidable_Controller extends SI_Controller {
 		$args = apply_filters( 'si_invoice_submmissions_args', $args );
 		$invoice_id = SI_Invoice::create_invoice( $args );
 		$invoice = SI_Invoice::get_instance( $invoice_id );
-		do_action( 'invoice_submitted_from_adv_form', $invoice, $args );
+		do_action( 'si_invoice_submitted_from_adv_form', $invoice, $args );
 		if ( isset( $args['line_item_list'] ) && ! empty( $args['line_item_list'] ) ) {
 			$line_items = array();
 			foreach ( $args['line_item_list'] as $item_id ) {
@@ -136,7 +136,7 @@ class SI_Formidable_Controller extends SI_Controller {
 			0,
 		false );
 
-		do_action( 'si_invoice_submitted_from_adv_form', $invoice, $args );
+		do_action( 'si_invoice_submitted_from_adv_form_complete', $invoice, $args );
 		return $invoice;
 	}
 
@@ -166,7 +166,7 @@ class SI_Formidable_Controller extends SI_Controller {
 	 *                               * contact_country
 	 *
 	 */
-	public static function maybe_create_client( $doc, $args = array() ) {
+	public static function maybe_create_client( $doc_id, $args = array() ) {
 		// check if client_id set is valid
 		$client_id = ( isset( $args['client_id'] ) && get_post_type( $args['client_id'] ) == SI_Client::POST_TYPE ) ? $args['client_id'] : 0;
 
@@ -225,13 +225,16 @@ class SI_Formidable_Controller extends SI_Controller {
 			do_action( 'si_new_record',
 				sprintf( 'Client Created & Assigned: %s', get_the_title( $client_id ) ),
 				self::SUBMISSION_UPDATE,
-				$doc->get_id(),
+				$doc_id,
 				sprintf( 'Client Created & Assigned: %s', get_the_title( $client_id ) ),
 				0,
 			false );
 		}
 		// Set the invoices client
-		$doc->set_client_id( $client_id );
+		$doc = si_get_doc_object( $doc_id );
+		if ( method_exists( $doc, 'set_client_id' ) ) {
+			$doc->set_client_id( $client_id );
+		}
 
 		return $client_id;
 	}

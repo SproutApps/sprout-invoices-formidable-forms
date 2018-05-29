@@ -251,7 +251,7 @@ class SI_Formidable extends SI_Formidable_Controller {
 			$doc = $invoice;
 		}
 
-		self::maybe_create_client( $doc, $client_args );
+		self::maybe_create_client( $doc_id, $client_args );
 
 		do_action( 'si_formidable_submission_complete', $doc_id );
 
