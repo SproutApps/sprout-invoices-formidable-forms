@@ -12,10 +12,11 @@ class SI_Formidable extends SI_Formidable_Controller {
 		self::$formidable_form_id = get_option( self::FORMIDABLE_FORM_ID, 0 );
 		self::$generation = get_option( self::GENERATION, 'estimate' );
 
-		add_filter( 'si_add_options', array( __CLASS__, 'remove_integration_addon_option' ) );
+		add_filter( 'si_settings_options', array( __CLASS__, 'add_settings_options' ) );
 
-		// filter options
-		self::register_settings();
+		add_action( 'si_settings_saved', array( get_class(), 'save_mappings' ) );
+
+		add_filter( 'si_settings', array( __CLASS__, 'register_settings' ) );
 
 		if ( self::$formidable_form_id ) {
 			// Create invoice before confirmation
@@ -31,13 +32,7 @@ class SI_Formidable extends SI_Formidable_Controller {
 	// Settings //
 	///////////////
 
-	public static function remove_integration_addon_option( $options = array() ) {
-		// remove the integration addon ad
-		unset( $options['settings']['estimate_submissions'] );
-		return $options;
-	}
-
-	public static function register_settings() {
+	public static function register_settings( $settings = array() ) {
 
 		$frdbl_options = array( 0 => __( 'No forms found', 'sprout-invoices' ) );
 		$forms = FrmForm::get_published_forms();
@@ -48,51 +43,71 @@ class SI_Formidable extends SI_Formidable_Controller {
 			}
 		}
 
-		$settings = array(
-			self::FORMIDABLE_FORM_ID => array(
-				'label' => __( 'Formidable Form', 'sprout-invoices' ),
-				'option' => array(
-					'type' => 'select',
-					'options' => $frdbl_options,
-					'default' => self::$formidable_form_id,
-					'description' => sprintf( __( 'Select the submission form built with <a href="%s">Formidables</a>.', 'sprout-invoices' ), 'https://sproutapps.co/link/formidable-forms' ),
-				),
-			),
-			self::GENERATION => array(
-				'label' => __( 'Submission Records', 'sprout-invoices' ),
-				'option' => array(
-					'type' => 'select',
-					'options' => array( 'estimate' => __( 'Estimate', 'sprout-invoices' ), 'invoice' => __( 'Invoice', 'sprout-invoices' ), 'client' => __( 'Client Only', 'sprout-invoices' ) ),
-					'default' => self::$generation,
-					'description' => __( 'Select the type of records you would like to be created. Note: estimates and invoices create client records.', 'sprout-invoices' ),
-				),
-			),
-			self::FORM_ID_MAPPING => array(
-				'label' => __( 'Formidable ID Mapping', 'sprout-invoices' ),
-				'option' => array( __CLASS__, 'show_formidable_form_field_mapping' ),
-				'sanitize_callback' => array( __CLASS__, 'save_formidable_form_field_mapping' ),
-			),
-		);
-
-		$all_settings = array(
-			'form_submissions' => array(
+		$settings['formidable_integration'] = array(
 				'title' => __( 'Formidable Submissions', 'sprout-invoices' ),
 				'weight' => 6,
-				'tab' => 'settings',
-				'settings' => $settings,
-			),
+				'tab' => 'addons',
+				'description' => sprintf( __( 'Refer to <a href="%s">this documentation</a> if you are unsure about these settings.', 'sprout-invoices' ), 'https://docs.sproutapps.co/article/8-integrating-gravity-forms-ninja-forms-or-custom-estimate-submissions' ),
+				'settings' => array(
+					self::FORMIDABLE_FORM_ID => array(
+						'label' => __( 'Formidable Form', 'sprout-invoices' ),
+						'option' => array(
+							'type' => 'select',
+							'options' => $frdbl_options,
+							'default' => self::$formidable_form_id,
+							'description' => sprintf( __( 'Select the submission form built with <a href="%s">Formidables</a>.', 'sprout-invoices' ), 'https://sproutapps.co/link/formidable-forms' ),
+						),
+					),
+					self::GENERATION => array(
+						'label' => __( 'Submission Records', 'sprout-invoices' ),
+						'option' => array(
+							'type' => 'select',
+							'options' => array( 'estimate' => __( 'Estimate', 'sprout-invoices' ), 'invoice' => __( 'Invoice', 'sprout-invoices' ), 'client' => __( 'Client Only', 'sprout-invoices' ) ),
+							'default' => self::$generation,
+							'description' => __( 'Select the type of records you would like to be created. Note: estimates and invoices create client records.', 'sprout-invoices' ),
+						),
+					),
+					self::FORM_ID_MAPPING => array(
+						'label' => __( 'Formidable ID Mapping', 'sprout-invoices' ),
+						'option' => array( __CLASS__, 'show_formidable_form_field_mapping' ),
+					),
+				),
 		);
 
-		do_action( 'sprout_settings', $all_settings );
+		return $settings;
 	}
 
-	public static function show_formidable_form_field_mapping() {
-		return self::show_form_field_mapping( self::mapping_options() );
+	public static function add_settings_options( $options = array() ) {
+		$save_options = array();
+		$form_mapping_options = get_option( self::FORM_ID_MAPPING, array() );
+		$mapping_options = self::mapping_options();
+		foreach ( $mapping_options as $key => $title ) {
+			$value = ( isset( $form_mapping_options[ $key ] ) ) ? $form_mapping_options[ $key ] : '' ;
+			$save_options[ SI_Settings_API::_sanitize_input_for_vue( 'si_invoice_sub_mapping_' . $key ) ] = $value;
+		}
+		return array_merge( $save_options, $options );
 	}
 
-	public static function save_formidable_form_field_mapping( $mappings = array() ) {
-		return self::save_form_field_mapping( self::mapping_options() );
+	public static function show_formidable_form_field_mapping( $fields = array() ) {
+		$fields = self::mapping_options();
+		foreach ( $fields as $name => $label ) {
+			$value = ( isset( self::$form_mapping[ $name ] ) ) ? self::$form_mapping[ $name ] : '' ;
+			printf( '<label><input v-model="vm.si_invoice_sub_mapping_%4$s" type="text" name="si_invoice_sub_mapping_%1$s" id="si_invoice_sub_mapping_%1$s" value="%3$s" size="2"> %2$s</label><br/>', $name, $label, $value, SI_Settings_API::_sanitize_input_for_vue( $name ) );
+		}
+
+		printf( '<p class="description">%s</p>', __( 'Map the field IDs of your form to the data name.', 'sprout-invoices' ) );
 	}
+
+
+	public static function save_mappings() {
+		$mappings = array();
+		$fields = self::mapping_options();
+		foreach ( $fields as $key => $label ) {
+			$mappings[ $key ] = isset( $_POST[ 'si_invoice_sub_mapping_' . $key ] ) ? $_POST[ 'si_invoice_sub_mapping_' . $key ] : '';
+		}
+		update_option( self::FORM_ID_MAPPING, $mappings );
+	}
+
 
 	public static function mapping_options() {
 		$options = array(

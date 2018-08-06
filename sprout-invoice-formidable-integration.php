@@ -5,7 +5,7 @@
  * Plugin URI: https://sproutapps.co/sprout-invoices/integrations/
  * Description: Allows for a form submitted by Formidable Forms to create all necessary records to send your client an invoice or estimate.
  * Author: Sprout Apps
- * Version: 1.0.2
+ * Version: 1.2
  * Author URI: https://sproutapps.co
  * Text Domain: sprout-invoices
  * Domain Path: languages

@@ -24,23 +24,6 @@ class SI_Formidable_Controller extends SI_Controller {
 		// integrations handle options
 	}
 
-	public static function show_form_field_mapping( $fields = array() ) {
-
-		foreach ( $fields as $name => $label ) {
-			$value = ( isset( self::$form_mapping[ $name ] ) ) ? self::$form_mapping[ $name ] : '' ;
-			printf( '<label><input type="text" name="si_invoice_sub_mapping_%1$s" value="%3$s" size="2"> %2$s</label><br/>', $name, $label, $value );
-		}
-
-		printf( '<p class="description">%s</p>', __( 'Map the field IDs of your form to the data name.', 'sprout-invoices' ) );
-	}
-
-	public static function save_form_field_mapping( $fields = array() ) {
-		$mappings = array();
-		foreach ( $fields as $name => $label ) {
-			$mappings[ $name ] = isset( $_POST[ 'si_invoice_sub_mapping_'.$name ] ) ? $_POST[ 'si_invoice_sub_mapping_'.$name ] : '';
-		}
-		return $mappings;
-	}
 
 	//////////////
 	// Utility //
