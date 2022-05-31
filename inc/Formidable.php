@@ -18,6 +18,9 @@ class SI_Formidable extends SI_Formidable_Controller {
 
 		add_filter( 'si_settings', array( __CLASS__, 'register_settings' ) );
 
+		// plugin menu
+		add_filter( 'plugin_action_links', array( __CLASS__, 'plugin_action_links' ), 10, 2 );
+
 		if ( self::$formidable_form_id ) {
 			// Create invoice before confirmation
 			add_action( 'frm_after_create_entry', array( __CLASS__, 'maybe_process_formidable_form' ), 10, 2 );
@@ -28,9 +31,26 @@ class SI_Formidable extends SI_Formidable_Controller {
 		}
 	}
 
-	///////////////
-	// Settings //
-	///////////////
+	/**
+	 * Add settings link to the plugin actions.
+	 *
+	 * @param  array  $actions Plugin actions.
+	 * @param  string $plugin_file Path to the plugin file.
+	 * @return array
+	 */
+
+	public static function plugin_action_links( $actions, $plugin_file ) {
+		static $si_formiddable_forms;
+
+		if ( ! isset( $plugin ) ) {
+			$si_formiddable_forms = plugin_basename( SA_ADDON_INVOICE_SUBMISSIONS_FILE );
+		}
+		if ( $si_formiddable_forms === $plugin_file ) {
+			$settings = array( 'settings' => '<a href="admin.php?page=sprout-invoices-addons#addons">' . __( 'Settings', 'General' ) . '</a>' );
+			$actions  = array_merge( $settings, $actions );
+		}
+		return $actions;
+	}
 
 	public static function register_settings( $settings = array() ) {
 
@@ -92,7 +112,7 @@ class SI_Formidable extends SI_Formidable_Controller {
 		$fields = self::mapping_options();
 		foreach ( $fields as $name => $label ) {
 			$value = ( isset( self::$form_mapping[ $name ] ) ) ? self::$form_mapping[ $name ] : '' ;
-			printf( '<label><input v-model="vm.si_invoice_sub_mapping_%4$s" type="text" name="si_invoice_sub_mapping_%1$s" id="si_invoice_sub_mapping_%1$s" value="%3$s" size="2"> %2$s</label><br/>', $name, $label, $value, SI_Settings_API::_sanitize_input_for_vue( $name ) );
+			printf( '<div class="si_input_field_wrap si_field_wrap_input_select si_form_int"><label class="si_input_label">%2$s</label><input v-model="vm.si_invoice_sub_mapping_%4$s" type="text" name="si_invoice_sub_mapping_%1$s" id="si_invoice_sub_mapping_%1$s" class="si_input" value="%3$s"></div><br/>', $name, $label, $value, SI_Settings_API::_sanitize_input_for_vue( $name ) );
 		}
 
 		printf( '<p class="description">%s</p>', __( 'Map the field IDs of your form to the data name.', 'sprout-invoices' ) );
@@ -162,7 +182,7 @@ class SI_Formidable extends SI_Formidable_Controller {
 										?>
 							<?php endforeach ?>
 						<?php endforeach ?>
-						
+
 					</div>
 				</div>
 			</div>
