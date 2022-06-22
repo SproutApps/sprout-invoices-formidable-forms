@@ -4,7 +4,7 @@ Donate link: https://sproutapps.co/
 Tags: invoice, invoicing, billing, estimates, formidable forms, billings, paypal, online payment
 Requires at least: 4.8
 Tested up to: 4.9
-Stable tag: 1.2
+Stable tag: 1.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,10 @@ https://www.youtube.com/watch?v=-Q3uxmLwlQs
 2. Settings overview
 
 == Changelog ==
+
+= 1.3 =
+* **Update:** Added settings link on plugin page.
+* **Fix:** Updated HTML for settings page to integrate with Sprout Invoices 20.0
 
 = 1.0.2 =
 
